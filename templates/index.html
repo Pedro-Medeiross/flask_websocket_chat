@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+
+    <!-- Importa o Socket.IO para comunicação em tempo real entre cliente e servidor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+
+    <style>
+        /* Estilos básicos para o layout da página */
+        body { font-family: Arial, sans-serif; }
+        #intro, #chat { max-width: 600px; margin: 50px auto; padding: 20px; border: 1px solid #ccc; }
+        #messages { list-style-type: none; padding: 0; }
+        #messages li { padding: 8px; margin-bottom: 10px; background: #f1f1f1; border-radius: 4px; }
+        #message-form { display: flex; }
+        #message-form input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        #message-form button { padding: 10px 20px; border: none; background: #28a745; color: #fff; border-radius: 4px; cursor: pointer; }
+        .delete-button { background: #dc3545; color: #fff; border: none; padding: 5px; cursor: pointer; }
+        #intro { display: block; }
+        #chat { display: none; } /* A seção de chat é inicialmente escondida */
+    </style>
+</head>
+<body>
+    <!-- Seção inicial onde o usuário insere seu nome -->
+    <div id="intro">
+        <h1>Bem-vindo ao Chat</h1>
+        <form id="name-form">
+            <input id="name" autocomplete="off" placeholder="Digite seu nome" />
+            <button>Entrar</button>
+        </form>
+    </div>
+
+    <!-- Seção de chat, exibida após o usuário inserir seu nome -->
+    <div id="chat">
+        <!-- Lista onde as mensagens enviadas serão exibidas -->
+        <ul id="messages"></ul>
+
+        <!-- Formulário para enviar novas mensagens -->
+        <form id="message-form">
+            <input id="message" autocomplete="off" placeholder="Digite sua mensagem" />
+            <button>Enviar</button>
+        </form>
+    </div>
+
+    <script>
+        const socket = io();  // Conecta ao servidor via Socket.IO
+        let userName = '';  // Variável para armazenar o nome do usuário
+
+        // Ação quando o usuário envia o formulário de nome
+        document.getElementById('name-form').addEventListener('submit', function(event) {
+            event.preventDefault();  // Impede o comportamento padrão de enviar o formulário
+            userName = document.getElementById('name').value;  // Obtém o nome digitado pelo usuário
+            document.getElementById('intro').style.display = 'none';  // Esconde a tela de introdução
+            document.getElementById('chat').style.display = 'block';  // Mostra a tela de chat
+        });
+
+        // Ação quando o usuário envia uma nova mensagem
+        document.getElementById('message-form').addEventListener('submit', function(event) {
+            event.preventDefault();  // Impede o envio do formulário
+            const message = document.getElementById('message').value;  // Obtém o texto da mensagem
+            socket.send({ name: userName, message });  // Envia a mensagem para o servidor via Socket.IO
+            document.getElementById('message').value = '';  // Limpa o campo de texto após o envio
+        });
+
+        // Recebe mensagens enviadas do servidor e as exibe na lista
+        socket.on('message', function(data) {
+            const { name, message, id } = data;  // Extrai os dados da mensagem
+            const li = document.createElement('li');  // Cria um novo elemento <li> para a mensagem
+            li.textContent = `${name}: ${message}`;  // Define o texto do <li> com o nome e a mensagem
+            li.dataset.id = id;  // Atribui o ID da mensagem como um atributo de dado
+            document.getElementById('messages').appendChild(li);  // Adiciona a mensagem à lista de mensagens
+        });
+
+        // Recebe o evento de deletar mensagem do servidor e remove a mensagem da lista
+        socket.on('delete_message', function(msg_id) {
+            const messagesList = document.getElementById('messages');
+            // Percorre a lista de mensagens e remove a mensagem que tem o ID correspondente
+            for (let i = 0; i < messagesList.children.length; i++) {
+                if (messagesList.children[i].dataset.id === msg_id) {
+                    messagesList.removeChild(messagesList.children[i]);  // Remove a mensagem
+                    break;  // Interrompe o loop após encontrar e remover a mensagem
+                }
+            }
+        });
+    </script>
+</body>
+</html>
